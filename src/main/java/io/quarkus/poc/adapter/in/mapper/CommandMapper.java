@@ -8,6 +8,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class CommandMapper {
     public PostingTransactionCommand toCommand(PostingTransactionRequest request) {
         if(request == null) return null;
-        return new PostingTransactionCommand(request.invoiceGroupCode(), request.currencyCode(), request.transactionValue(), request.brandInformation());
+        return new PostingTransactionCommand(request.invoiceGroupCode(), request.currencyCode(), request.operationType(), request.transactionValue(), request.brandInformation());
     }
 }

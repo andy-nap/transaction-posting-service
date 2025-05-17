@@ -5,7 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.quarkus.poc.adapter.in.mapper.CommandMapper;
 import io.quarkus.poc.adapter.in.rest.dto.request.PostingTransactionRequest;
-import io.quarkus.poc.application.usecase.PostTransactionUseCase;
+import io.quarkus.poc.domain.port.in.PostTransactionUseCase;
 import io.quarkus.poc.domain.model.aggregate.InvoiceGroupAggregateRoot;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;

@@ -15,4 +15,8 @@ public class InvoiceStatement {
     private Short status;
     private Transaction transaction;
     private Transaction originalTransaction;
+
+    public boolean isOpen() {
+        return status == 1;
+    }
 }
