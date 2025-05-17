@@ -1,0 +1,18 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:50052"
+      http:
+
+exporters:
+  otlp:
+    endpoint: "http://jaeger:4317"
+    tls:
+      insecure_skip_verify: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlp]

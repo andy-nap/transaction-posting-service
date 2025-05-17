@@ -1,0 +1,32 @@
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.49
+    ports:
+      - "16686:16686" # Interface Web do Jaeger
+      - "4317:4317"   # Porta para OTLP gRPC
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.111.0
+    command: [ "--config=/etc/otel-config.yaml" ]
+    volumes:
+      - ./otel-config.yaml:/etc/otel-config.yaml
+    ports:
+      - "50052:50052" # OTLP gRPC
+      - "55681:55681" # Métricas
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
