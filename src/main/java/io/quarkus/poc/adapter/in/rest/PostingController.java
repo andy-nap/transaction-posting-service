@@ -2,10 +2,13 @@ package io.quarkus.poc.adapter.in.rest;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.opentelemetry.api.baggage.Baggage;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.quarkus.poc.adapter.in.mapper.CommandMapper;
 import io.quarkus.poc.adapter.in.rest.dto.request.PostingTransactionRequest;
-import io.quarkus.poc.domain.port.in.PostTransactionUseCase;
+import io.quarkus.poc.domain.port.in.PostUseCase;
 import io.quarkus.poc.domain.model.aggregate.InvoiceGroupAggregateRoot;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -18,21 +21,29 @@ public class PostingController {
 
     private final Counter requestCounter;
     final CommandMapper mapper;
-    final PostTransactionUseCase postTransactionUseCase;
+    final PostUseCase postUseCase;
 
     @Inject
-    public PostingController(MeterRegistry registry, CommandMapper mapper, PostTransactionUseCase postTransactionUseCase) {
+    public PostingController(MeterRegistry registry, CommandMapper mapper, PostUseCase postUseCase) {
         this.requestCounter = registry.counter("requests_total", "type", "http");
         this.mapper = mapper;
-        this.postTransactionUseCase = postTransactionUseCase;
+        this.postUseCase = postUseCase;
     }
 
     @POST
     @WithSpan
     public InvoiceGroupAggregateRoot post(PostingTransactionRequest request) {
-        System.out.printf("Requisição recebida:");
-        var cmd = mapper.toCommand(request);
-        return postTransactionUseCase.process(cmd);
+        Baggage baggage = Baggage.builder()
+                .put("servico_origem", "checkout-service")
+                .put("correlation-id", "abc-xyz-123")
+                .build();
+        var contextComBaggage = baggage.storeInContext(Context.current());
+        // Torna o contexto atual com baggage visível globalmente no thread atual
+        try (Scope scope = contextComBaggage.makeCurrent()) {
+            System.out.printf("Requisição recebida:");
+            var cmd = mapper.toCommand(request);
+            return postUseCase.process(cmd);
+        }
     }
 
     @GET

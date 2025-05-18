@@ -2,44 +2,58 @@ package io.quarkus.poc.application.usecase;
 
 import io.quarkus.poc.adapter.out.database.repository.InvoiceGroupRepository;
 import io.quarkus.poc.application.command.PostingTransactionCommand;
-import io.quarkus.poc.application.handler.event.EventHandler;
-import io.quarkus.poc.application.loader.finder.InvoiceGroupAggregateRootLoader;
+import io.quarkus.poc.application.handler.event.EventProcessor;
+import io.quarkus.poc.application.loader.InvoiceGroupAggregateRootLoader;
 import io.quarkus.poc.application.uow.UnitOfWork;
 import io.quarkus.poc.domain.model.aggregate.InvoiceGroupAggregateRoot;
-import io.quarkus.poc.domain.port.in.PostTransactionUseCase;
-import io.quarkus.poc.domain.port.out.EventPublisherPort;
+import io.quarkus.poc.domain.model.entity.Transaction;
+import io.quarkus.poc.domain.port.in.PostUseCase;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
-public class PostTransactionService implements PostTransactionUseCase {
+@Slf4j
+public class PostTransactionService implements PostUseCase {
 
     private final UnitOfWork unitOfWork;
-    private final EventPublisherPort eventPublisher;
     private final InvoiceGroupRepository invoiceGroupRepository;
     private final InvoiceGroupAggregateRootLoader loader;
-    private final List<EventHandler> eventHandlers;
+    private final EventProcessor eventProcessor;
 
 
-    public PostTransactionService(UnitOfWork unitOfWork, EventPublisherPort eventPublisher, InvoiceGroupRepository invoiceGroupRepository, InvoiceGroupAggregateRootLoader loader, List<EventHandler> eventHandlers) {
+
+    public PostTransactionService(UnitOfWork unitOfWork, InvoiceGroupRepository invoiceGroupRepository, InvoiceGroupAggregateRootLoader loader, EventProcessor eventProcessor) {
         this.unitOfWork = unitOfWork;
-        this.eventPublisher = eventPublisher;
         this.invoiceGroupRepository = invoiceGroupRepository;
         this.loader = loader;
-        this.eventHandlers = eventHandlers;
+        this.eventProcessor = eventProcessor;
     }
 
     @Override
     public InvoiceGroupAggregateRoot process(PostingTransactionCommand command) {
+        log.info("Processing transaction for command {}", command);
         return unitOfWork.execute(() -> runInTransaction(command));
     }
 
+    /**
+     * Retorna um Supplier para buscar a transação original, se aplicável.
+     * Útil para reversão, mas pode ser expandido para outros casos.
+     */
+    private Supplier<Optional<Transaction>> getOriginalFinder(PostingTransactionCommand command) {
+        Supplier<Optional<Transaction>> result = Optional::empty;
+        if (command.operationType().equals("R"))
+            result = () -> invoiceGroupRepository.findOriginal(command.invoiceGroupId());
+        return result;
+    }
+
     private InvoiceGroupAggregateRoot runInTransaction(PostingTransactionCommand command) {
-            var aggregateRoot = loader.loadOrCreate(command);
-            final var aggregateRootUpdate = invoiceGroupRepository.save(aggregateRoot);
-            var events = eventHandlers.stream().map(handler -> handler.handle(aggregateRootUpdate))
-                    .flatMap(Optional::stream).toList();
-            events.forEach(eventPublisher::publish);
-            return aggregateRoot;
+        var aggregateRoot = loader.loadOrCreate(command);
+        var findOriginal = getOriginalFinder(command);
+        var original = findOriginal.get();
+        if (original.isPresent()) log.info("Updating aggregate root with original transaction");
+        final var aggregateRootUpdate = invoiceGroupRepository.save(aggregateRoot);
+        eventProcessor.processAndPublish(aggregateRootUpdate);
+        return aggregateRoot;
     }
 }

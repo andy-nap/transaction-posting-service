@@ -2,31 +2,31 @@ package io.quarkus.poc.application.usecase;
 
 import io.quarkus.poc.adapter.out.database.repository.InvoiceGroupRepository;
 import io.quarkus.poc.application.command.PostingTransactionCommand;
-import io.quarkus.poc.application.loader.finder.InvoiceGroupAggregateRootLoader;
+import io.quarkus.poc.application.handler.event.EventHandler;
+import io.quarkus.poc.application.loader.InvoiceGroupAggregateRootLoader;
 import io.quarkus.poc.application.uow.UnitOfWork;
 import io.quarkus.poc.domain.model.aggregate.InvoiceGroupAggregateRoot;
-import io.quarkus.poc.domain.port.in.PostTransactionUseCase;
+import io.quarkus.poc.domain.port.in.PostUseCase;
 import io.quarkus.poc.domain.port.out.EventPublisherPort;
 import lombok.extern.slf4j.Slf4j;
 
-import java.beans.EventHandler;
 import java.util.List;
 
 @Slf4j
-public class PostAnnulationTransactionService implements PostTransactionUseCase {
+public class PostAnnulationTransactionService implements PostUseCase {
 
     private final UnitOfWork unitOfWork;
     private final EventPublisherPort eventPublisher;
     private final InvoiceGroupRepository invoiceGroupRepository;
     private final InvoiceGroupAggregateRootLoader loader;
-    private final List<EventHandler> eventHandlers;
+    private final List<EventHandler> EventHandlers;
 
-    public PostAnnulationTransactionService(UnitOfWork unitOfWork, EventPublisherPort eventPublisher, InvoiceGroupRepository invoiceGroupRepository, InvoiceGroupAggregateRootLoader loader, List<EventHandler> eventHandlers) {
+    public PostAnnulationTransactionService(UnitOfWork unitOfWork, EventPublisherPort eventPublisher, InvoiceGroupRepository invoiceGroupRepository, InvoiceGroupAggregateRootLoader loader, List<EventHandler> EventHandlers) {
         this.unitOfWork = unitOfWork;
         this.eventPublisher = eventPublisher;
         this.invoiceGroupRepository = invoiceGroupRepository;
         this.loader = loader;
-        this.eventHandlers = eventHandlers;
+        this.EventHandlers = EventHandlers;
     }
 
     @Override

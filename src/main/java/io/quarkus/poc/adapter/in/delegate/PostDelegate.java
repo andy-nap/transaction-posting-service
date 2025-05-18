@@ -7,13 +7,14 @@ import io.quarkus.poc.adapter.out.database.repository.TransactionRepository;
 import io.quarkus.poc.application.command.PostingTransactionCommand;
 import io.quarkus.poc.application.handler.event.AccountableEventHandler;
 import io.quarkus.poc.application.handler.event.BrandCreatedEventHandler;
+import io.quarkus.poc.application.handler.event.EventProcessor;
 import io.quarkus.poc.application.handler.event.TransactionCreatedEventHandler;
-import io.quarkus.poc.application.loader.finder.InvoiceGroupAggregateRootLoader;
+import io.quarkus.poc.application.loader.InvoiceGroupAggregateRootLoader;
 import io.quarkus.poc.application.uow.UnitOfWork;
 import io.quarkus.poc.application.usecase.*;
 import io.quarkus.poc.domain.model.aggregate.InvoiceGroupAggregateRoot;
 import io.quarkus.poc.domain.model.enums.OperationType;
-import io.quarkus.poc.domain.port.in.PostTransactionUseCase;
+import io.quarkus.poc.domain.port.in.PostUseCase;
 import io.quarkus.poc.domain.port.out.EventPublisherPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -24,18 +25,19 @@ import java.util.List;
 import java.util.Map;
 
 @ApplicationScoped
-public class PostTransactionDelegate implements PostTransactionUseCase {
+public class PostDelegate implements PostUseCase {
 
-    private final Map<OperationType ,PostTransactionUseCase> postTransactionHandlers = new EnumMap<>(OperationType.class);
+    private final Map<OperationType , PostUseCase> postTransactionHandlers = new EnumMap<>(OperationType.class);
 
     @Inject
-    public PostTransactionDelegate(UnitOfWork unitOfWork, EventPublisherPort eventPublisher, InvoiceGroupRepository invoiceGroupRepository, InvoiceStatementRepository invoiceStatementRepository, TransactionRepository transactionRepository, BrandInformationRepository brandInformationRepository) {
+    public PostDelegate(UnitOfWork unitOfWork, EventPublisherPort eventPublisher, InvoiceGroupRepository invoiceGroupRepository, InvoiceStatementRepository invoiceStatementRepository, TransactionRepository transactionRepository, BrandInformationRepository brandInformationRepository) {
         var loader = new InvoiceGroupAggregateRootLoader(invoiceGroupRepository);
         var transactionCreatedEventHandler = new TransactionCreatedEventHandler();
         var brandCreatedEventHandler = new BrandCreatedEventHandler();
         var accountableEventHandler = new AccountableEventHandler();
-        this.postTransactionHandlers.put(OperationType.POSTING, new PostTransactionService(unitOfWork, eventPublisher,
-                invoiceGroupRepository, loader, List.of(transactionCreatedEventHandler, accountableEventHandler)));
+        var eventProcessor = new EventProcessor(List.of(transactionCreatedEventHandler, brandCreatedEventHandler, accountableEventHandler), eventPublisher);
+        this.postTransactionHandlers.put(OperationType.POSTING, new PostTransactionService(unitOfWork,
+                invoiceGroupRepository, loader, eventProcessor));
         this.postTransactionHandlers.put(OperationType.BRAND, new PostBrandDataService(unitOfWork, eventPublisher,
                 invoiceGroupRepository, loader, List.of(brandCreatedEventHandler)));
         this.postTransactionHandlers.put(OperationType.REVERSAL, new PostReversalTransactionService(unitOfWork,

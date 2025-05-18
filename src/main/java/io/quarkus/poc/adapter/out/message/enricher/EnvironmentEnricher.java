@@ -2,7 +2,6 @@ package io.quarkus.poc.adapter.out.message.enricher;
 
 
 import io.quarkus.poc.adapter.out.message.EventWrapper;
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -13,7 +12,7 @@ public class EnvironmentEnricher implements EventWrapperEnricher {
     String environment;
 
     @Override
-    public EventWrapper enrich(EventWrapper envelope) {
-        return envelope.withHeader("ce_environment", environment != null ? environment : "dev");
+    public void enrich(EventWrapper.Builder builder) {
+        builder.header("ce_environment", environment != null ? environment : "dev");
     }
 }
