@@ -12,7 +12,6 @@ import com.posting.service.application.handler.event.TransactionCreatedEventHand
 import com.posting.service.application.loader.InvoiceGroupAggregateRootLoader;
 import com.posting.service.application.uow.UnitOfWork;
 import com.posting.service.application.usecase.*;
-import io.quarkus.poc.application.usecase.*;
 import com.posting.service.domain.model.aggregate.InvoiceGroupAggregateRoot;
 import com.posting.service.domain.model.enums.OperationType;
 import com.posting.service.domain.port.in.PostUseCase;
