@@ -1,0 +1,52 @@
+(async () => {
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  const baseURL = window.location.origin;
+  const appEntries = Array.from(document.querySelectorAll('.applications-list__entry'));
+
+  const apps = appEntries.map(entry => {
+    const spans = entry.querySelectorAll('span');
+    const name = spans[0]?.innerText?.trim();
+    return name && name.startsWith('minha-') ? { name, url: `${baseURL}/applications/${encodeURIComponent(name)}` } : null;
+  }).filter(Boolean);
+
+  const resultados = [];
+
+  for (let i = 0; i < apps.length; i++) {
+    const { name, url } = apps[i];
+    console.log(`➡️ Acessando ${name} (${i + 1}/${apps.length})`);
+
+    window.location.href = url;
+    await sleep(6000); // aguarda o app carregar
+
+    const tooltips = Array.from(document.querySelectorAll('.resource-node__tooltip'));
+    const images = new Set();
+
+    tooltips.forEach(el => {
+      const matches = el.innerText.match(/image: ([\w.:\/\-@]+)/g);
+      matches?.forEach(m => images.add(m));
+    });
+
+    resultados.push({
+      app: name,
+      imagens: [...images]
+    });
+
+    console.clear();
+    console.log("🟡 Parcial:", resultados);
+
+    await sleep(1000);
+    history.back(); // volta pra lista
+    await sleep(6000); // espera recarregar a lista
+  }
+
+  const textoFinal = resultados.map(r =>
+    `🧩 ${r.app}:\n${r.imagens.map(img => `  - ${img}`).join('\n')}`
+  ).join('\n\n');
+
+  console.log("✅ Resultado final:");
+  console.log(textoFinal);
+
+  await navigator.clipboard.writeText(textoFinal);
+  console.log("📋 Copiado para a área de transferência!");
+})();
